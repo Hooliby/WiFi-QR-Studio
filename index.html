@@ -1,0 +1,694 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WiFi QR Studio - Professional Edition</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Utils -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    /* Custom Font Imports */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Pacifico&family=Space+Mono:wght@400;700&family=Cinzel:wght@600&display=swap');
+    
+    body {
+      background-color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Dot Grid Background for Preview Area */
+    .bg-dot-pattern {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.5);
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.7);
+    }
+
+    /* Smooth Input Transitions */
+    .input-field {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, forwardRef } = React;
+
+    // --- Icons ---
+    const Icon = ({ path, size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+    );
+
+    const Icons = {
+      Wifi: (props) => <Icon {...props} path={<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>} />,
+      Lock: (props) => <Icon {...props} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>} />,
+      Eye: (props) => <Icon {...props} path={<><path d="M2 12s3-7 10-7 10 7 10 7-10 7-10 7-10 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></>} />,
+      Download: (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />,
+      ShieldCheck: (props) => <Icon {...props} path={<><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></>} />,
+      Coffee: (props) => <Icon {...props} path={<><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></>} />,
+      Palette: (props) => <Icon {...props} path={<><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></>} />,
+      Layout: (props) => <Icon {...props} path={<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>} />,
+      Check: (props) => <Icon {...props} path={<polyline points="20 6 9 17 4 12"/>} />,
+      Image: (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />,
+      Trash: (props) => <Icon {...props} path={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></>} />,
+      Smartphone: (props) => <Icon {...props} path={<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>} />,
+      Monitor: (props) => <Icon {...props} path={<><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>} />,
+      FileText: (props) => <Icon {...props} path={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></>} />,
+      Code: (props) => <Icon {...props} path={<><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></>} />,
+      Award: (props) => <Icon {...props} path={<><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></>} />,
+      Tool: (props) => <Icon {...props} path={<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />} />,
+    };
+
+    // --- QRCode Component ---
+    const QRCodeCanvas = ({ value, size, darkColor, lightColor }) => {
+      const containerRef = useRef(null);
+      useEffect(() => {
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+          try {
+            new QRCode(containerRef.current, {
+              text: value,
+              width: size,
+              height: size,
+              colorDark : darkColor || "#000000",
+              colorLight : lightColor || "#ffffff",
+              correctLevel : QRCode.CorrectLevel.H
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }, [value, size, darkColor, lightColor]);
+      return <div ref={containerRef} className="flex justify-center" />;
+    };
+
+    // --- Theme Config ---
+    const THEMES = {
+      'modern-dark': { 
+        bg: 'bg-slate-900', 
+        text: 'text-white', 
+        border: 'border-slate-800',
+        qrBg: 'bg-white', 
+        qrDark: '#000000',
+        qrLight: '#ffffff'
+      },
+      'ocean-breeze': { 
+        bg: 'bg-gradient-to-br from-cyan-500 to-blue-700', 
+        text: 'text-white', 
+        qrBg: 'bg-white/90',
+        qrDark: '#1e3a8a',
+        qrLight: '#ffffff'
+      },
+      'sunset-vibe': { 
+        bg: 'bg-gradient-to-tr from-orange-400 via-pink-500 to-purple-600', 
+        text: 'text-white', 
+        qrBg: 'bg-white/90',
+        qrDark: '#9333ea',
+        qrLight: '#ffffff'
+      },
+      'minimal-white': { 
+        bg: 'bg-white', 
+        text: 'text-slate-900', 
+        border: 'border-slate-200',
+        qrBg: 'bg-slate-50',
+        qrDark: '#0f172a',
+        qrLight: '#ffffff'
+      },
+      'forest-glass': { 
+        bg: 'bg-gradient-to-br from-emerald-800 to-teal-900', 
+        text: 'text-white', 
+        qrBg: 'bg-white/90',
+        qrDark: '#064e3b',
+        qrLight: '#ffffff'
+      },
+      'coffee-house': { 
+        bg: 'bg-[#2C1810]', 
+        text: 'text-[#E6DCC3]', 
+        qrBg: 'bg-[#E6DCC3]',
+        qrDark: '#2C1810',
+        qrLight: '#E6DCC3'
+      },
+      'fresh-mint': { 
+        bg: 'bg-gradient-to-br from-[#84fab0] to-[#8fd3f4]', 
+        text: 'text-slate-800', 
+        qrBg: 'bg-white',
+        qrDark: '#0f766e',
+        qrLight: '#ffffff'
+      },
+      'cyber-punk': {
+        bg: 'bg-black',
+        text: 'text-[#00ff00]',
+        qrBg: 'bg-black border border-[#00ff00]',
+        qrDark: '#00ff00',
+        qrLight: '#000000',
+        font: 'Space Mono'
+      },
+      'royal-gold': {
+        bg: 'bg-[#1a1a1a]',
+        text: 'text-[#D4AF37]',
+        qrBg: 'bg-[#1a1a1a] border border-[#D4AF37]',
+        qrDark: '#D4AF37',
+        qrLight: '#1a1a1a',
+        font: 'Cinzel'
+      },
+       'cherry-blossom': {
+        bg: 'bg-pink-50',
+        text: 'text-pink-900',
+        qrBg: 'bg-white border border-pink-200',
+        qrDark: '#831843',
+        qrLight: '#fff1f2',
+      }
+    };
+
+    const FRAMES = [
+      { id: 'none', label: 'None', icon: 'Layout' },
+      { id: 'macos', label: 'MacOS', icon: 'Monitor' },
+      { id: 'phone', label: 'Phone', icon: 'Smartphone' },
+      { id: 'polaroid', label: 'Polaroid', icon: 'Image' },
+    ];
+
+    const Poster = forwardRef(({ wifiData, config }, ref) => {
+      const isPreview = !wifiData.ssid;
+      const displaySSID = isPreview ? 'Your Network' : wifiData.ssid;
+      
+      const isNoPass = !wifiData.password || wifiData.password.trim() === '';
+      // Default to WPA if not specified, but if password empty -> nopass
+      const effectiveEncryption = isNoPass ? 'nopass' : (wifiData.encryption || 'WPA');
+
+      const encryptionStr = effectiveEncryption === 'nopass' ? '' : `T:${effectiveEncryption};`;
+      const passwordStr = effectiveEncryption === 'nopass' ? '' : `P:${wifiData.password};`;
+      
+      const qrValue = isPreview 
+        ? "WIFI:S:Your Network;T:WPA;P:password;;" 
+        : `WIFI:${encryptionStr}S:${wifiData.ssid};${passwordStr};`;
+
+      const theme = THEMES[config.theme] || THEMES['modern-dark'];
+      // Determine if text is light or dark for UI elements that sit on top
+      const isDarkTheme = ['modern-dark', 'forest-glass', 'coffee-house', 'cyber-punk', 'royal-gold'].includes(config.theme);
+      const isLightText = isDarkTheme || config.theme.includes('ocean') || config.theme.includes('sunset');
+      
+      const qrSize = config.logoUrl ? 185 : 200; 
+
+      // --- Inner Content Render Function ---
+      const renderInnerContent = (rounded = false) => (
+        <div 
+          className={`relative w-[400px] h-[660px] shrink-0 grid grid-rows-[auto_1fr_auto] overflow-hidden px-10 pt-12 pb-8 ${theme.bg} ${theme.text} ${rounded ? 'rounded-[3rem]' : ''}`}
+          style={{ fontFamily: config.font || (theme.font ? theme.font : 'Inter') }}
+        >
+          {/* Background Patterns */}
+          {config.theme === 'ocean-breeze' && (
+            <>
+              <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl opacity-50"></div>
+              <div className="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-cyan-300 rounded-full mix-blend-overlay filter blur-3xl opacity-50"></div>
+            </>
+          )}
+          {config.theme === 'sunset-vibe' && (
+            <div className="absolute top-[10%] left-[20%] w-32 h-32 bg-yellow-300 rounded-full mix-blend-overlay filter blur-2xl opacity-40"></div>
+          )}
+          {config.theme === 'coffee-house' && (
+            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]"></div>
+          )}
+          {config.theme === 'cyber-punk' && (
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_2px,3px_100%] pointer-events-none"></div>
+          )}
+           {config.theme === 'cherry-blossom' && (
+            <div className="absolute top-0 right-0 w-40 h-40 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          )}
+
+          {/* Header */}
+          <div className="z-10 w-full flex flex-col items-center justify-center text-center">
+            {config.logoUrl ? (
+              <div className="w-24 h-24 mb-4 rounded-full overflow-hidden shadow-lg border-4 border-white/20 bg-white flex items-center justify-center shrink-0">
+                <img src={config.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className={`mb-4 p-4 rounded-full shadow-lg ${isLightText ? 'bg-white/10 backdrop-blur-sm' : 'bg-white/50'}`}>
+                {config.theme === 'coffee-house' ? (
+                   <Icons.Coffee size={48} className={isLightText ? 'text-[#E6DCC3]' : 'text-slate-900'} />
+                ) : (
+                   <Icons.Wifi size={48} className={isLightText ? 'text-white' : 'text-slate-900'} />
+                )}
+              </div>
+            )}
+            
+            <h1 className="text-4xl font-bold tracking-tight mb-3 break-words w-full leading-tight drop-shadow-sm text-center">
+              {config.shopName || 'WiFi Zone'}
+            </h1>
+            <div className={`h-1.5 w-20 rounded-full mb-2 ${isLightText ? 'bg-current opacity-40' : 'bg-slate-900/20'}`}></div>
+          </div>
+
+          {/* QR Section */}
+          <div className="z-10 flex items-center justify-center py-4 w-full place-self-center">
+            <div className={`p-4 rounded-2xl ${theme.qrBg} shadow-xl transform transition-transform`}>
+               <div className="relative">
+                <QRCodeCanvas 
+                  value={qrValue} 
+                  size={qrSize} 
+                  darkColor={theme.qrDark}
+                  lightColor={theme.qrLight}
+                />
+                {config.logoUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-white p-1 rounded-full shadow-sm">
+                       <img src={config.logoUrl} className="w-10 h-10 object-cover rounded-full" />
+                    </div>
+                  </div>
+                )}
+               </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="z-10 w-full text-center space-y-4 self-end">
+            <div className="flex items-center justify-center gap-2 opacity-90">
+                <Icons.Smartphone size={20} className="opacity-80" />
+                <p className="text-lg font-medium tracking-wide">{config.instructionText}</p>
+            </div>
+
+            <div className={`w-full p-4 rounded-xl ${isLightText ? 'bg-black/20' : 'bg-white/40'} backdrop-blur-sm flex flex-col gap-2 shadow-sm border border-white/10`}>
+              <div className={`flex justify-between items-center text-sm ${((config.showPasswordOnPoster && wifiData.password) || isPreview) ? 'border-b pb-2 mb-1 border-current border-opacity-20' : ''}`}>
+                <span className="opacity-70 font-medium">Network</span>
+                <span className="font-bold tracking-wide text-base">{displaySSID}</span>
+              </div>
+              
+              {((config.showPasswordOnPoster && wifiData.password) || isPreview) && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="opacity-70 flex items-center gap-1 font-medium"><Icons.Lock size={12}/> Password</span>
+                  <span className={`font-mono font-bold px-2 py-0.5 rounded text-sm ${isLightText ? 'bg-white/20' : 'bg-slate-900/10'}`}>
+                    {isPreview ? '********' : wifiData.password}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+
+      // --- FRAME RENDERERS ---
+
+      // 1. MacOS Frame
+      if (config.frameStyle === 'macos') {
+        return (
+          <div ref={ref} className="relative shadow-2xl rounded-xl overflow-hidden bg-[#24292f] flex flex-col ring-1 ring-white/10 w-fit mx-auto">
+             <div className="h-9 bg-[#24292f] flex items-center px-4 gap-2 shrink-0 border-b border-black/40 w-[400px]">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f57] border border-[#e0443e]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#febc2e] border border-[#d89e24]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#28c840] border border-[#1aab29]"></div>
+                <div className="flex-1 text-center text-xs text-gray-400 font-mono">wifi-config.yml</div>
+             </div>
+             {renderInnerContent()}
+          </div>
+        );
+      }
+
+      // 2. Phone Frame
+      if (config.frameStyle === 'phone') {
+        return (
+          <div ref={ref} className="relative p-3 bg-gray-900 rounded-[3.5rem] shadow-2xl w-fit mx-auto ring-4 ring-gray-800">
+             {/* Side Buttons */}
+             <div className="absolute -right-1 top-32 w-1 h-16 bg-gray-800 rounded-r-md"></div>
+             <div className="absolute -left-1 top-24 w-1 h-8 bg-gray-800 rounded-l-md"></div>
+             <div className="absolute -left-1 top-36 w-1 h-12 bg-gray-800 rounded-l-md"></div>
+             
+             <div className="relative rounded-[3rem] overflow-hidden border-[6px] border-black bg-black">
+                {/* Status Bar Mockup */}
+                <div className="absolute top-0 w-full h-14 z-20 flex justify-between px-8 pt-4 text-white/90 text-xs font-medium mix-blend-difference pointer-events-none">
+                   <span>9:41</span>
+                   <div className="flex gap-1.5">
+                      <Icons.Wifi size={14}/>
+                      <div className="w-5 h-2.5 border border-white/80 rounded-sm relative"><div className="absolute inset-0 bg-white/80 w-3/4"></div></div>
+                   </div>
+                </div>
+                {/* Dynamic Island */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-20 pointer-events-none"></div>
+                
+                {renderInnerContent(true)}
+                
+                {/* Home Indicator */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/50 rounded-full z-20 pointer-events-none"></div>
+             </div>
+          </div>
+        );
+      }
+
+      // 3. Polaroid Frame
+      if (config.frameStyle === 'polaroid') {
+        return (
+          <div ref={ref} className="bg-white p-4 pb-24 shadow-xl w-fit mx-auto transform rotate-1">
+             <div className="border border-slate-100 shadow-inner filter contrast-125">
+               {renderInnerContent()}
+             </div>
+             <div className={`absolute bottom-8 left-0 w-full text-center font-[Pacifico] text-3xl text-slate-700 opacity-80`}>
+                {config.shopName || 'WiFi Zone'}
+             </div>
+          </div>
+        );
+      }
+
+      // Default: None (Plain)
+      return (
+        <div ref={ref} className="w-fit mx-auto shadow-2xl">
+          {renderInnerContent()}
+        </div>
+      );
+    });
+
+    // --- Main App ---
+    const App = () => {
+      const [wifiData, setWifiData] = useState({ ssid: '', password: '', encryption: 'WPA' });
+      const [posterConfig, setPosterConfig] = useState({
+        shopName: '', font: 'Inter', theme: 'modern-dark', logoUrl: undefined,
+        showPasswordOnPoster: true, instructionText: 'Scan to join network',
+        frameStyle: 'none'
+      });
+      const [isGenerating, setIsGenerating] = useState(false);
+      const posterRef = useRef(null);
+      const fileInputRef = useRef(null);
+
+      const handleInputChange = (e) => setWifiData(p => ({ ...p, [e.target.name]: e.target.value }));
+      const handleConfigChange = (e) => setPosterConfig(p => ({ ...p, [e.target.name]: e.target.value }));
+      
+      const handleLogoUpload = (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const reader = new FileReader();
+          reader.onloadend = () => setPosterConfig(p => ({ ...p, logoUrl: reader.result }));
+          reader.readAsDataURL(e.target.files[0]);
+          e.target.value = '';
+        }
+      };
+
+      const handleDownload = async () => {
+        if (!posterRef.current || !wifiData.ssid) return;
+        setIsGenerating(true);
+        try {
+          await new Promise(r => setTimeout(r, 100));
+          const canvas = await html2canvas(posterRef.current, {
+            scale: 3, useCORS: true, backgroundColor: null, scrollX: 0, scrollY: 0
+          });
+          const link = document.createElement('a');
+          link.download = `wifi-poster-${wifiData.ssid.replace(/[^a-z0-9]/gi, '_')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        } catch (e) {
+          alert('Error generating poster.');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      const themes = [
+        { id: 'modern-dark', color: '#0f172a', name: 'Dark' },
+        { id: 'ocean-breeze', color: 'linear-gradient(135deg, #06b6d4, #1d4ed8)', name: 'Ocean' },
+        { id: 'sunset-vibe', color: 'linear-gradient(135deg, #fb923c, #9333ea)', name: 'Sunset' },
+        { id: 'forest-glass', color: 'linear-gradient(135deg, #064e3b, #134e4a)', name: 'Forest' },
+        { id: 'minimal-white', color: '#ffffff', name: 'Clean', border: true },
+        { id: 'coffee-house', color: '#3E2723', name: 'Coffee' },
+        { id: 'fresh-mint', color: 'linear-gradient(135deg, #84fab0, #8fd3f4)', name: 'Mint' },
+        { id: 'cyber-punk', color: '#000000', name: 'Cyber', border: true, borderColor: '#00ff00' },
+        { id: 'royal-gold', color: '#1a1a1a', name: 'Gold', border: true, borderColor: '#D4AF37' },
+        { id: 'cherry-blossom', color: '#fff1f2', name: 'Sakura' },
+      ];
+
+      return (
+        <div className="min-h-screen flex flex-col font-sans text-slate-800">
+          
+          {/* Top Navigation */}
+          <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/20">
+                  <Icons.Wifi size={24} />
+                </div>
+                <div>
+                   <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 leading-tight">
+                    WiFi QR Studio
+                  </h1>
+                  <p className="text-[11px] text-slate-500 font-medium tracking-wide">PROFESSIONAL EDITION</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="hidden md:flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                    <Icons.ShieldCheck size={14} /> Local Processing
+                 </div>
+                 <button
+                  onClick={handleDownload}
+                  disabled={isGenerating || !wifiData.ssid}
+                  className={`relative group overflow-hidden flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all shadow-lg ${
+                    !wifiData.ssid 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40 transform active:scale-95'
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    {isGenerating ? 'Processing...' : <><Icons.Download size={18} /> Download Poster</>}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          <main className="flex-1 max-w-[1600px] mx-auto w-full p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+            
+            {/* Left Panel: Controls */}
+            <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+              
+              {/* Network Configuration Card */}
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-shadow duration-300">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <Icons.Wifi size={18} className="text-indigo-600"/> Network Credentials
+                  </h2>
+                </div>
+                <div className="p-6 space-y-5">
+                   <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Network Name (SSID)</label>
+                      <input
+                        type="text"
+                        name="ssid"
+                        placeholder="My Awesome WiFi"
+                        value={wifiData.ssid}
+                        onChange={handleInputChange}
+                        className="input-field w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none text-slate-900 font-medium placeholder:text-slate-400"
+                      />
+                   </div>
+                   
+                   <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password (Optional)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="password"
+                          placeholder="Password123"
+                          value={wifiData.password}
+                          onChange={handleInputChange}
+                          className="input-field w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-mono text-sm"
+                        />
+                        <div className="absolute left-3.5 top-3.5 text-slate-400"><Icons.Lock size={16}/></div>
+                      </div>
+                   </div>
+                </div>
+              </section>
+
+              {/* Design Customization Card */}
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-shadow duration-300">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <Icons.Palette size={18} className="text-pink-500"/> Visual Design
+                  </h2>
+                </div>
+                <div className="p-6 space-y-6">
+                   
+                   {/* Theme Grid */}
+                   <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Color Theme</label>
+                      <div className="grid grid-cols-5 gap-3">
+                        {themes.map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setPosterConfig(p => ({...p, theme: t.id}))}
+                            className={`group relative aspect-square rounded-full transition-all duration-200 ${
+                              posterConfig.theme === t.id 
+                                ? 'scale-110 ring-2 ring-offset-2 ring-indigo-500 shadow-lg' 
+                                : 'hover:scale-110 hover:shadow-md'
+                            }`}
+                            style={{ 
+                               background: t.color, 
+                               border: t.border ? `1px solid ${t.borderColor || '#e2e8f0'}` : 'none' 
+                            }}
+                            title={t.name}
+                          >
+                             {posterConfig.theme === t.id && (
+                               <span className="absolute inset-0 flex items-center justify-center">
+                                 <Icons.Check size={14} className={['minimal-white', 'fresh-mint', 'cherry-blossom'].includes(t.id) ? 'text-slate-800' : 'text-white'} />
+                               </span>
+                             )}
+                          </button>
+                        ))}
+                      </div>
+                   </div>
+
+                   {/* Frame Style Selector */}
+                   <div>
+                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Frame Style</label>
+                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {FRAMES.map((frame) => (
+                           <button
+                             key={frame.id}
+                             onClick={() => setPosterConfig(p => ({...p, frameStyle: frame.id}))}
+                             className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                               posterConfig.frameStyle === frame.id 
+                                 ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm' 
+                                 : 'bg-white border-slate-200 hover:border-slate-300 text-slate-500 hover:bg-slate-50'
+                             }`}
+                           >
+                              <div className="mb-2 opacity-80">
+                                 {/* Dynamic Icon Rendering */}
+                                 {frame.id === 'none' && <Icons.Layout size={20} />}
+                                 {frame.id === 'macos' && <div className="flex gap-0.5"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div><div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div></div>}
+                                 {frame.id === 'phone' && <Icons.Smartphone size={20} />}
+                                 {frame.id === 'polaroid' && <Icons.Image size={20} />}
+                              </div>
+                              <span className="text-[10px] font-semibold text-center leading-tight">{frame.label}</span>
+                           </button>
+                        ))}
+                     </div>
+                   </div>
+
+                   <hr className="border-slate-100" />
+
+                   {/* Custom Branding */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Display Title</label>
+                        <input
+                          type="text"
+                          name="shopName"
+                          placeholder="e.g. Guest WiFi"
+                          value={posterConfig.shopName}
+                          onChange={handleConfigChange}
+                          className="input-field w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Font Style</label>
+                         <div className="relative">
+                            <select
+                              name="font"
+                              value={posterConfig.font}
+                              onChange={handleConfigChange}
+                              className="input-field w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none appearance-none"
+                            >
+                              <option value="Inter">Modern Sans</option>
+                              <option value="Playfair Display">Elegant Serif</option>
+                              <option value="Pacifico">Handwritten</option>
+                              <option value="Space Mono">Monospace</option>
+                              <option value="Cinzel">Cinzel (Royal)</option>
+                            </select>
+                            <div className="absolute right-2 top-3 pointer-events-none text-slate-400"><svg width="10" height="10" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3" fill="none"><path d="m6 9 6 6 6-6"/></svg></div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Custom Logo</label>
+                      <div className={`relative border-2 border-dashed rounded-xl p-4 transition-colors ${posterConfig.logoUrl ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-400 hover:bg-slate-50'}`}>
+                         {!posterConfig.logoUrl ? (
+                           <label className="flex flex-col items-center justify-center cursor-pointer py-2">
+                              <Icons.Image size={24} className="text-slate-400 mb-2"/>
+                              <span className="text-xs font-medium text-slate-600">Click to upload logo</span>
+                              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                           </label>
+                         ) : (
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 overflow-hidden">
+                                   <img src={posterConfig.logoUrl} className="w-full h-full object-cover" />
+                                 </div>
+                                 <span className="text-xs font-semibold text-slate-700">Logo Uploaded</span>
+                              </div>
+                              <button onClick={() => { setPosterConfig(p => ({...p, logoUrl: undefined})); if(fileInputRef.current) fileInputRef.current.value=''; }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                 <Icons.Trash size={16} />
+                              </button>
+                           </div>
+                         )}
+                      </div>
+                   </div>
+
+                   <div className="flex items-center justify-between pt-2">
+                       <label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                         <Icons.Eye size={16} /> Show Password
+                       </label>
+                       <div 
+                          className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${posterConfig.showPasswordOnPoster ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                          onClick={() => setPosterConfig(p => ({...p, showPasswordOnPoster: !p.showPasswordOnPoster}))}
+                       >
+                          <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${posterConfig.showPasswordOnPoster ? 'translate-x-6' : 'translate-x-0'}`} />
+                       </div>
+                   </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Right Panel: Preview Area */}
+            <div className="lg:col-span-7 xl:col-span-8 flex flex-col h-[calc(100vh-140px)] sticky top-24">
+               <div className="flex-1 bg-slate-100 rounded-2xl border border-slate-200/60 shadow-inner overflow-hidden flex flex-col relative bg-dot-pattern">
+                  {/* Canvas Toolbar */}
+                  <div className="h-12 bg-white/80 backdrop-blur-sm border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
+                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-green-500"></div> Live Preview
+                     </span>
+                     <div className="text-xs text-slate-400 font-mono">High Resolution Output</div>
+                  </div>
+
+                  {/* Scrollable Canvas */}
+                  <div className="flex-1 overflow-auto custom-scrollbar flex p-8 relative z-10">
+                     <div className="m-auto transition-all duration-500 ease-out transform">
+                        <div className="relative shadow-none bg-transparent">
+                           <Poster ref={posterRef} wifiData={wifiData} config={posterConfig} />
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+          </main>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

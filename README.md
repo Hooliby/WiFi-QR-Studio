@@ -1,3 +1,9 @@
 # WiFi-QR-Studio
 
-![](https://github.com/Hooliby/WiFi-QR-Studio/blob/main/image.png)
+**功能说明**
+
+- 生成 WiFi 网络的二维码，方便快速连接。
+- 支持设置 SSID、加密类型（WEP/WPA/WPA2/无）、密码以及是否隐藏网络。
+- 提供海报（Poster）布局用于将二维码与网络信息一起排版，方便打印或展示。
+- 实时预览生成的二维码和连接信息。
+- 支持导出二维码图片或打印海报以便线下使用。

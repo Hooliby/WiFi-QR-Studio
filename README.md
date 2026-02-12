@@ -6,4 +6,4 @@
 - 提供海报（Poster）布局用于将二维码与网络信息一起排版，方便打印或展示。
 - 实时预览生成的二维码和连接信息。
 - 支持导出二维码图片或打印海报以便线下使用。
-- ![image](https://github.com/Hooliby/WiFi-QR-Studio/blob/main/image.png)
+![image](https://github.com/Hooliby/WiFi-QR-Studio/blob/main/image.png)
